@@ -14,6 +14,7 @@ import importlib
 import torch.utils.data
 from data.base_dataset import BaseDataset
 import torch.multiprocessing as mp
+import horovod.torch as hvd
 
 
 def find_dataset_using_name(dataset_name):
