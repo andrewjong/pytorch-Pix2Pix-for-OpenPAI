@@ -69,6 +69,7 @@ class CustomDatasetDataLoader():
         Step 1: create a dataset instance given the name [dataset_mode]
         Step 2: create a multi-threaded data loader.
         """
+        print("Found dataset class")
         self.opt = opt
         dataset_class = find_dataset_using_name(opt.dataset_mode)
         self.dataset = dataset_class(opt)
@@ -87,11 +88,13 @@ class CustomDatasetDataLoader():
             kwargs['multiprocessing_context'] = 'forkserver'
 
 
+        print("Create train sampler")
         # Partition dataset among workers using DistributedSampler
         train_sampler = torch.utils.data.distributed.DistributedSampler(
             self.dataset, num_replicas=hvd.size(), rank=hvd.rank()
         )
 
+        print("Create dataloader")
         self.dataloader = torch.utils.data.DataLoader(
             self.dataset,
             batch_size=opt.batch_size,
