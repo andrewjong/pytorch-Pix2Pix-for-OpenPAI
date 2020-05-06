@@ -1,3 +1,4 @@
+import horovod.torch as hvd
 import argparse
 import os
 from util import util
@@ -106,12 +107,13 @@ class BaseOptions():
         print(message)
 
         # save to the disk
-        expr_dir = os.path.join(opt.checkpoints_dir, opt.name)
-        util.mkdirs(expr_dir)
-        file_name = os.path.join(expr_dir, '{}_opt.txt'.format(opt.phase))
-        with open(file_name, 'wt') as opt_file:
-            opt_file.write(message)
-            opt_file.write('\n')
+        if hvd.rank() == 0:
+            expr_dir = os.path.join(opt.checkpoints_dir, opt.name)
+            util.mkdirs(expr_dir)
+            file_name = os.path.join(expr_dir, '{}_opt.txt'.format(opt.phase))
+            with open(file_name, 'wt') as opt_file:
+                opt_file.write(message)
+                opt_file.write('\n')
 
     def parse(self):
         """Parse our options, create checkpoints directory suffix, and set up gpu device."""
