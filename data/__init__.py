@@ -100,7 +100,7 @@ class CustomDatasetDataLoader():
             self.dataset,
             batch_size=opt.batch_size,
             sampler=train_sampler,
-            shuffle=not opt.serial_batches,
+            shuffle=False,  # shuffling is mutually exclusive to sampler
             **kwargs
         )
 
