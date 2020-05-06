@@ -80,7 +80,7 @@ class CustomDatasetDataLoader():
         # limit # of CPU threads to be used per worker.
         torch.set_num_threads(1)
 
-        kwargs = {'num_workers': 1, 'pin_memory': True} if opt.cuda else {}
+        kwargs = {'num_workers': 1, 'pin_memory': True} if len(opt.gpu_ids) > 0 else {}
         # When supported, use 'forkserver' to spawn dataloader workers instead of 'fork' to prevent
         # issues with Infiniband implementations that are not fork-safe
         if (kwargs.get('num_workers', 0) > 0 and hasattr(mp, '_supports_context') and

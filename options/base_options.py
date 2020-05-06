@@ -135,7 +135,7 @@ class BaseOptions():
             if id >= 0:
                 opt.gpu_ids.append(id)
         if len(opt.gpu_ids) > 0:
-            torch.cuda.set_device(opt.gpu_ids[0])
+            torch.cuda.set_device(hvd.local_rank())
 
         self.opt = opt
         return self.opt
