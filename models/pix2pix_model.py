@@ -1,3 +1,4 @@
+import horovod.torch as hvd
 import torch
 from .base_model import BaseModel
 from . import networks
@@ -56,17 +57,38 @@ class Pix2PixModel(BaseModel):
         self.netG = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.norm,
                                       not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
 
+        # Horovod
+        hvd.broadcast_parameters(self.netG.state_dict(), root_rank=0)
+
         if self.isTrain:  # define a discriminator; conditional GANs need to take both input and output images; Therefore, #channels for D is input_nc + output_nc
             self.netD = networks.define_D(opt.input_nc + opt.output_nc, opt.ndf, opt.netD,
                                           opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
+            # Horovod
+            hvd.broadcast_parameters(self.netD.state_dict(), root_rank=0)
 
         if self.isTrain:
+            # Horovod
+            compression = hvd.Compression.fp16 if args.fp16_allreduce else hvd.Compression.none
+            lr_scaler = hvd.size() if not opt.use_adasum else 1
+
+            if args.use_adasum and hvd.nccl_built():
+                lr_scaler = hvd.local_size()
+
+
             # define loss functions
             self.criterionGAN = networks.GANLoss(opt.gan_mode).to(self.device)
             self.criterionL1 = torch.nn.L1Loss()
             # initialize optimizers; schedulers will be automatically created by function <BaseModel.setup>.
-            self.optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
-            self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+            optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=opt.lr * lr_scaler, betas=(opt.beta1, 0.999))
+            # Horovod
+            hvd.broadcast_optimizer_state(optimizer_G, root_rank=0)
+            self.optimizer_G = hvd.DistributedOptimizer(optimizer_G, named_parameters=self.netG.named_parameters())
+
+            optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=opt.lr * lr_scaler, betas=(opt.beta1, 0.999))
+            # Horovod
+            hvd.broadcast_optimizer_state(optimizer_D, root_rank=0)
+            self.optimizer_D = hvd.DistributedOptimizer(optimizer_D, named_parameters=self.netD.named_parameters())
+
             self.optimizers.append(self.optimizer_G)
             self.optimizers.append(self.optimizer_D)
 

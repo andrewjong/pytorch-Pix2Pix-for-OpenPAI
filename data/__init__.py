@@ -13,6 +13,7 @@ See our template dataset class 'template_dataset.py' for more details.
 import importlib
 import torch.utils.data
 from data.base_dataset import BaseDataset
+import torch.multiprocessing as mp
 
 
 def find_dataset_using_name(dataset_name):
@@ -72,11 +73,30 @@ class CustomDatasetDataLoader():
         dataset_class = find_dataset_using_name(opt.dataset_mode)
         self.dataset = dataset_class(opt)
         print("dataset [%s] was created" % type(self.dataset).__name__)
+
+
+        # Horovod
+
+        kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
+        # When supported, use 'forkserver' to spawn dataloader workers instead of 'fork' to prevent
+        # issues with Infiniband implementations that are not fork-safe
+        if (kwargs.get('num_workers', 0) > 0 and hasattr(mp, '_supports_context') and
+                mp._supports_context and 'forkserver' in mp.get_all_start_methods()):
+            kwargs['multiprocessing_context'] = 'forkserver'
+
+
+        # Partition dataset among workers using DistributedSampler
+        train_sampler = torch.utils.data.distributed.DistributedSampler(
+            train_dataset, num_replicas=hvd.size(), rank=hvd.rank()
+        )
+
         self.dataloader = torch.utils.data.DataLoader(
             self.dataset,
             batch_size=opt.batch_size,
+            sampler=train_sampler,
             shuffle=not opt.serial_batches,
-            num_workers=int(opt.num_threads))
+            **kwargs
+        )
 
     def load_data(self):
         return self

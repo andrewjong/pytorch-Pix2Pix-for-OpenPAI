@@ -19,6 +19,9 @@ class BaseOptions():
 
     def initialize(self, parser):
         """Define the common options that are used in both training and test."""
+        # Horovod parameters
+        parser.add_argument('--fp16-allreduce', action='store_true', default=False, help='use fp16 compression during allreduce')
+        parser.add_argument('--use-adasum', action='store_true', default=False, help='use adasum algorithm to do reduction')
         # basic parameters
         parser.add_argument('--dataroot', required=True, help='path to images (should have subfolders trainA, trainB, valA, valB, etc)')
         parser.add_argument('--name', type=str, default='experiment_name', help='name of the experiment. It decides where to store samples and models')

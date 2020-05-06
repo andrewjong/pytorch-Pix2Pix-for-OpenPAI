@@ -1,3 +1,4 @@
+import horovod.torch as hvd
 import torch
 import itertools
 from util.image_pool import ImagePool
