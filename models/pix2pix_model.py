@@ -68,10 +68,10 @@ class Pix2PixModel(BaseModel):
 
         if self.isTrain:
             # Horovod
-            compression = hvd.Compression.fp16 if args.fp16_allreduce else hvd.Compression.none
+            compression = hvd.Compression.fp16 if opt.fp16_allreduce else hvd.Compression.none
             lr_scaler = hvd.size() if not opt.use_adasum else 1
 
-            if args.use_adasum and hvd.nccl_built():
+            if opt.use_adasum and hvd.nccl_built():
                 lr_scaler = hvd.local_size()
 
 

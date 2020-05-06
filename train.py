@@ -30,20 +30,15 @@ from util.visualizer import Visualizer
 if __name__ == '__main__':
     # Initialize Horovod
     hvd.init()
-    
-    # Pin GPU to be used to process local rank (one GPU per process)
-    if torch.cuda.is_available():
-        torch.cuda.set_device(hvd.local_rank())
-
-
 
     opt = TrainOptions().parse()   # get training options
+    model = create_model(opt)      # create a model given opt.model and other options
+    model.setup(opt)               # regular setup: load and print networks; create schedulers
+
     dataset = create_dataset(opt)  # create a dataset given opt.dataset_mode and other options
     dataset_size = len(dataset)    # get the number of images in the dataset.
     print('The number of training images = %d' % dataset_size)
 
-    model = create_model(opt)      # create a model given opt.model and other options
-    model.setup(opt)               # regular setup: load and print networks; create schedulers
     visualizer = Visualizer(opt)   # create a visualizer that display/save images and plots
     total_iters = 0                # the total number of training iterations
 
